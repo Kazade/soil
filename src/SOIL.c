@@ -26,8 +26,12 @@
 	#include <Carbon/Carbon.h>
 	#define APIENTRY
 #else
+#ifndef __ANDROID__
 	#include <GL/gl.h>
 	#include <GL/glx.h>
+#else
+	#include <GLES3/gl3.h>
+#endif
 #endif
 
 #include "SOIL.h"
@@ -78,8 +82,14 @@ int query_DXT_capability( void );
 #define SOIL_RGBA_S3TC_DXT1		0x83F1
 #define SOIL_RGBA_S3TC_DXT3		0x83F2
 #define SOIL_RGBA_S3TC_DXT5		0x83F3
+
+#ifndef __ANDROID__
 typedef void (APIENTRY * P_SOIL_GLCOMPRESSEDTEXIMAGE2DPROC) (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * data);
 P_SOIL_GLCOMPRESSEDTEXIMAGE2DPROC soilGlCompressedTexImage2D = NULL;
+#else
+#define soilGlCompressedTexImage2D glCompressedTexImage2D
+#endif
+
 unsigned int SOIL_direct_load_DDS(
 		const char *filename,
 		unsigned int reuse_texture_ID,
@@ -1343,7 +1353,7 @@ unsigned int
 		} else
 		{
 			/*	unsigned int clamp_mode = SOIL_CLAMP_TO_EDGE;	*/
-			unsigned int clamp_mode = GL_CLAMP;
+			unsigned int clamp_mode = GL_CLAMP_TO_EDGE;
 			glTexParameteri( opengl_texture_type, GL_TEXTURE_WRAP_S, clamp_mode );
 			glTexParameteri( opengl_texture_type, GL_TEXTURE_WRAP_T, clamp_mode );
 			if( opengl_texture_type == SOIL_TEXTURE_CUBE_MAP )
@@ -1810,7 +1820,7 @@ unsigned int SOIL_direct_load_DDS_from_memory(
 		} else
 		{
 			/*	unsigned int clamp_mode = SOIL_CLAMP_TO_EDGE;	*/
-			unsigned int clamp_mode = GL_CLAMP;
+			unsigned int clamp_mode = GL_CLAMP_TO_EDGE;
 			glTexParameteri( opengl_texture_type, GL_TEXTURE_WRAP_S, clamp_mode );
 			glTexParameteri( opengl_texture_type, GL_TEXTURE_WRAP_T, clamp_mode );
 			glTexParameteri( opengl_texture_type, SOIL_TEXTURE_WRAP_R, clamp_mode );
@@ -1962,6 +1972,7 @@ int query_DXT_capability( void )
 			has_DXT_capability = SOIL_CAPABILITY_NONE;
 		} else
 		{
+#ifndef __ANDROID__
 			/*	and find the address of the extension function	*/
 			P_SOIL_GLCOMPRESSEDTEXIMAGE2DPROC ext_addr = NULL;
 			#ifdef WIN32
@@ -2017,6 +2028,11 @@ int query_DXT_capability( void )
 				soilGlCompressedTexImage2D = ext_addr;
 				has_DXT_capability = SOIL_CAPABILITY_PRESENT;
 			}
+
+#else //__ANDROID__
+			//FIXME: THis just skips the check, doesn't mean it's true
+			has_DXT_capability = SOIL_CAPABILITY_PRESENT;
+#endif
 		}
 	}
 	/*	let the user know if we can do DXT or not	*/
